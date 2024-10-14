@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.asm": "asm-intel-x86-generic",
+        "*.s": "asm-intel-x86-generic",
+        "iterator": "cpp"
+    }
+}
