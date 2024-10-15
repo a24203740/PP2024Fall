@@ -6,8 +6,16 @@
 #include <memory>
 
 #include <pthread.h>
+#include <time.h>
+
+#include <experimental/simd>
 
 using ll = long long;
+namespace stdx = std::experimental;
+using V = stdx::native_simd<double>;
+using V_MASK = stdx::simd_mask<double>;
+const size_t V_SIZE = V::size();
+const V V_ONE = V(1.0);
 
 struct ThreadData {
     ll n;
@@ -20,31 +28,27 @@ void* MonteCarloPi(void *arg) {
     ll n = td->n;
     std::mt19937 gen(*td->seeds);
     std::uniform_real_distribution<double> dis(0, 1);
-    if(n <= UINT32_MAX)
-    {
-        uint inside = 0;
-        uint n32 = n;
-        for (uint i = 0; i < n32; i++) {
-            double x = dis(gen);
-            double y = dis(gen);
-            if (x * x + y * y <= 1) {
-                inside++;
-            }
-        }
-        td->inside = inside;
+    ll inside = 0;
+
+    ll n_rem = n % V_SIZE;
+    ll n_vec = n - n_rem;
+    for (ll i = 0; i < n_vec; i+=V_SIZE) {
+        V x([&dis, &gen](int i) { return dis(gen); });
+        V y([&dis, &gen](int i) { return dis(gen); });
+        V r = x * x + y * y;
+        // psuedo: for(ri in r) if(ri <= 1) inside++;
+        inside += stdx::popcount(r <= V_ONE); 
     }
-    else
+    for(ll i = 0; i < n_rem; i++)
     {
-        ll inside = 0;
-        for (ll i = 0; i < n; i++) {
-            double x = dis(gen);
-            double y = dis(gen);
-            if (x * x + y * y <= 1) {
-                inside++;
-            }
+        double x = dis(gen);
+        double y = dis(gen);
+        if(x * x + y * y <= 1)
+        {
+            inside++;
         }
-        td->inside = inside;
     }
+    td->inside = inside;
     pthread_exit(NULL);
 }
 
@@ -54,9 +58,9 @@ int main(int argc, char** argv) {
         std::cerr << "Usage: " << argv[0] << " <number of thread> <number of tosses>" << std::endl;
         return 1;
     }
+    clock_t start = clock(), mid, end;
     unsigned int tn = std::stoul(argv[1]);
     unsigned int n = std::stoul(argv[2]);
-    
     std::random_device rd;
     
     std::vector<std::unique_ptr<std::seed_seq>> seeds(tn);
@@ -83,12 +87,12 @@ int main(int argc, char** argv) {
     {
         pthread_create(&threads[i], NULL, MonteCarloPi, (void*)(threadDataes.data() + i));
     }
-
+    mid = clock();
     for(unsigned int i = 0; i < tn; i++)
     {
         pthread_join(threads[i], NULL);
     }
-
+    end = clock();
     ll inside = 0;
     for(unsigned int i = 0; i < tn; i++)
     {
@@ -96,5 +100,7 @@ int main(int argc, char** argv) {
     }
     double pi = 4.0 * inside / n;
     std::cout << std::fixed << std::setprecision(8) << pi << std::endl;
+    std::cout << "Time: " << (double)(mid - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    std::cout << "Time: " << (double)(end - mid) / CLOCKS_PER_SEC << "s" << std::endl;
     return 0;   
 }
