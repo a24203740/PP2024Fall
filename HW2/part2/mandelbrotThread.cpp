@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
-
+#include <algorithm>
+#include <CycleTimer.h>
 typedef struct
 {
     float x0, x1;
@@ -14,12 +15,60 @@ typedef struct
     int numThreads;
 } WorkerArgs;
 
-extern void mandelbrotSerial(
+// extern void mandelbrotSerial(
+//     float x0, float y0, float x1, float y1,
+//     int width, int height,
+//     int startRow, int numRows,
+//     int maxIterations,
+//     int output[]);
+
+static inline int mandel(float c_re, float c_im, int count)
+{
+  float z_re = c_re, z_im = c_im;
+  int i;
+  for (i = 0; i < count; ++i)
+  {
+
+    if (z_re * z_re + z_im * z_im > 4.f)
+      break;
+
+    float new_re = z_re * z_re - z_im * z_im;
+    float new_im = 2.f * z_re * z_im;
+    z_re = c_re + new_re;
+    z_im = c_im + new_im;
+  }
+
+  return i;
+}
+
+
+long long int accountingMandelbrotSerial(
     float x0, float y0, float x1, float y1,
     int width, int height,
-    int startRow, int numRows,
+    int startRow, int totalRows,
     int maxIterations,
-    int output[]);
+    int output[])
+{
+  float dx = (x1 - x0) / width;
+  float dy = (y1 - y0) / height;
+  long long int count = 0;
+  int endRow = startRow + totalRows;
+
+  for (int j = startRow; j < endRow; j++)
+  {
+    for (int i = 0; i < width; ++i)
+    {
+      float x = x0 + i * dx;
+      float y = y0 + j * dy;
+
+      int index = (j * width + i);
+      output[index] = mandel(x, y, maxIterations);
+      count += output[index];
+    }
+  }
+  return count;
+}
+
 
 //
 // workerThreadStart --
@@ -27,6 +76,16 @@ extern void mandelbrotSerial(
 // Thread entrypoint.
 void workerThreadStart(WorkerArgs *const args)
 {
+    double startTime = CycleTimer::currentSeconds();
+    int rowCount = args->height / args->numThreads;
+    int rowSizeRemainder = args->height % args->numThreads;
+    int startRow = args->threadId * rowCount;
+    startRow += std::min(args->threadId, rowSizeRemainder);
+    if(args->threadId < rowSizeRemainder)
+    {
+        rowCount++;
+    }
+    long long int iterationCount = accountingMandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow, rowCount, args->maxIterations, args->output);
 
     // TODO FOR PP STUDENTS: Implement the body of the worker
     // thread here. Each thread could make a call to mandelbrotSerial()
@@ -35,8 +94,9 @@ void workerThreadStart(WorkerArgs *const args)
     // half of the image and thread 1 could compute the bottom half.
     // Of course, you can copy mandelbrotSerial() to this file and
     // modify it to pursue a better performance.
-
-    printf("Hello world from thread %d\n", args->threadId);
+    double endTime = CycleTimer::currentSeconds();
+    printf("Hello world from thread %d, time: %.3f ms\n", args->threadId, endTime - startTime);
+    printf("Thread %d, iteration count: %lld\n", args->threadId, iterationCount);
 }
 
 //
@@ -87,9 +147,7 @@ void mandelbrotThread(
     {
         workers[i] = std::thread(workerThreadStart, &args[i]);
     }
-
     workerThreadStart(&args[0]);
-
     // join worker threads
     for (int i = 1; i < numThreads; i++)
     {

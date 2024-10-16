@@ -1,1 +1,7 @@
 .vscode
+*.o
+*.out
+
+#HW2
+mandelbrot
+*.ppm
