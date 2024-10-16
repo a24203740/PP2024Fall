@@ -1,6 +1,7 @@
 .vscode
 *.o
 *.out
+*.zip
 
 #HW2
 mandelbrot

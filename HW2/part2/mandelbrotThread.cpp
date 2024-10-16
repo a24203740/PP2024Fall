@@ -42,18 +42,18 @@ static inline int mandel(float c_re, float c_im, int count)
 }
 
 
-void accountingMandelbrotSerial(
+void mandelbrotSerialWithStride(
     float x0, float y0, float x1, float y1,
     int width, int height,
     int startRow, int totalRows,
-    int maxIterations, int steps,
+    int maxIterations, int stride,
     int output[])
 {
   float dx = (x1 - x0) / width;
   float dy = (y1 - y0) / height;
   int endRow = startRow + totalRows;
 
-  for (int j = startRow; j < endRow; j+=steps)
+  for (int j = startRow; j < endRow; j+=stride)
   {
     for (int i = 0; i < width; ++i)
     {
@@ -74,7 +74,7 @@ void accountingMandelbrotSerial(
 void workerThreadStart(WorkerArgs *const args)
 {
     double startTime = CycleTimer::currentSeconds();
-    accountingMandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, args->threadId, args->height, args->maxIterations, args->numThreads, args->output);
+    mandelbrotSerialWithStride(args->x0, args->y0, args->x1, args->y1, args->width, args->height, args->threadId, args->height, args->maxIterations, args->numThreads, args->output);
 
     // TODO FOR PP STUDENTS: Implement the body of the worker
     // thread here. Each thread could make a call to mandelbrotSerial()
@@ -84,7 +84,7 @@ void workerThreadStart(WorkerArgs *const args)
     // Of course, you can copy mandelbrotSerial() to this file and
     // modify it to pursue a better performance.
     double endTime = CycleTimer::currentSeconds();
-    printf("Hello world from thread %d, time: %.3f s\n", args->threadId, endTime - startTime);
+    // printf("Hello world from thread %d, time: %.3f ms\n", args->threadId, (endTime - startTime) * 1000);
 }
 
 //

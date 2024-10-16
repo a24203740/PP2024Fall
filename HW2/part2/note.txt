@@ -1,0 +1,72 @@
+2 Thread: 196.615 ms (1.95x speedup)
+
+Thread 0, time: 199 ms, iteration count: 66452883
+Thread 1, time: 200 ms, iteration count: 66759063
+
+3 Thread: 235.378 ms (1.63x speedup)
+
+Thread 0, time:  77 ms, iteration count: 26252661
+Thread 1, time: 241 ms, iteration count: 80554923
+Thread 2, time:  78 ms, iteration count: 26404362
+
+4 Thread: 161.029 ms (2.39x speedup)
+
+Thread 0, time:  38 ms, iteration count: 12654686
+Thread 1, time: 161 ms, iteration count: 53798197
+Thread 2, time: 162 ms, iteration count: 53986989
+Thread 3, time:  39 ms, iteration count: 12772074
+
+5 Thread: 158.792 ms (2.42x speedup)
+
+Thread 0, time:  18 ms, iteration count: 5926205
+Thread 1, time: 102 ms, iteration count: 34102743
+Thread 2, time: 158 ms, iteration count: 52956447
+Thread 3, time: 103 ms, iteration count: 34216272
+Thread 4, time:  18 ms, iteration count: 6010279
+
+6 Thread: 122.005 ms (3.15x speedup)
+
+Thread 0, time:  11 ms, iteration count: 3673804
+Thread 1, time:  72 ms, iteration count: 22578857
+Thread 2, time: 124 ms, iteration count: 40200222
+Thread 3, time: 121 ms, iteration count: 40354701
+Thread 4, time:  68 ms, iteration count: 22708288
+Thread 5, time:  11 ms, iteration count: 3696074
+
+
+===
+
+Approved:
+
+4 Thread: 100.960 ms (3.81x speedup)
+
+Hello world from thread 0, time: 100.503 ms
+Hello world from thread 1, time: 100.504 ms
+Hello world from thread 2, time: 100.539 ms
+Hello world from thread 3, time: 100.448 ms
+
+---
+
+6 Thread 68.877 ms (5.58x speedup)
+
+Hello world from thread 0, time: 68.899 ms
+Hello world from thread 1, time: 68.567 ms
+Hello world from thread 2, time: 68.627 ms
+Hello world from thread 3, time: 68.649 ms
+Hello world from thread 4, time: 68.639 ms
+Hello world from thread 5, time: 68.721 ms
+
+12 Thread 75.209 ms (5.11x speedup)
+
+Hello world from thread  0, time: 70.610 ms
+Hello world from thread  1, time: 65.736 ms
+Hello world from thread  2, time: 37.368 ms
+Hello world from thread  3, time: 65.075 ms
+Hello world from thread  4, time: 63.244 ms
+Hello world from thread  5, time: 37.346 ms
+Hello world from thread  6, time: 65.977 ms
+Hello world from thread  7, time: 58.511 ms
+Hello world from thread  8, time: 54.136 ms
+Hello world from thread  9, time: 47.256 ms
+Hello world from thread 10, time: 58.544 ms
+Hello world from thread 11, time: 57.426 ms
