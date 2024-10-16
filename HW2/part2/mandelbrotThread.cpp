@@ -42,19 +42,18 @@ static inline int mandel(float c_re, float c_im, int count)
 }
 
 
-long long int accountingMandelbrotSerial(
+void accountingMandelbrotSerial(
     float x0, float y0, float x1, float y1,
     int width, int height,
     int startRow, int totalRows,
-    int maxIterations,
+    int maxIterations, int steps,
     int output[])
 {
   float dx = (x1 - x0) / width;
   float dy = (y1 - y0) / height;
-  long long int count = 0;
   int endRow = startRow + totalRows;
 
-  for (int j = startRow; j < endRow; j++)
+  for (int j = startRow; j < endRow; j+=steps)
   {
     for (int i = 0; i < width; ++i)
     {
@@ -63,10 +62,8 @@ long long int accountingMandelbrotSerial(
 
       int index = (j * width + i);
       output[index] = mandel(x, y, maxIterations);
-      count += output[index];
     }
   }
-  return count;
 }
 
 
@@ -77,15 +74,7 @@ long long int accountingMandelbrotSerial(
 void workerThreadStart(WorkerArgs *const args)
 {
     double startTime = CycleTimer::currentSeconds();
-    int rowCount = args->height / args->numThreads;
-    int rowSizeRemainder = args->height % args->numThreads;
-    int startRow = args->threadId * rowCount;
-    startRow += std::min(args->threadId, rowSizeRemainder);
-    if(args->threadId < rowSizeRemainder)
-    {
-        rowCount++;
-    }
-    long long int iterationCount = accountingMandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow, rowCount, args->maxIterations, args->output);
+    accountingMandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, args->threadId, args->height, args->maxIterations, args->numThreads, args->output);
 
     // TODO FOR PP STUDENTS: Implement the body of the worker
     // thread here. Each thread could make a call to mandelbrotSerial()
@@ -95,8 +84,7 @@ void workerThreadStart(WorkerArgs *const args)
     // Of course, you can copy mandelbrotSerial() to this file and
     // modify it to pursue a better performance.
     double endTime = CycleTimer::currentSeconds();
-    printf("Hello world from thread %d, time: %.3f ms\n", args->threadId, endTime - startTime);
-    printf("Thread %d, iteration count: %lld\n", args->threadId, iterationCount);
+    printf("Hello world from thread %d, time: %.3f s\n", args->threadId, endTime - startTime);
 }
 
 //
