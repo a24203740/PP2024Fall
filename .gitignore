@@ -2,7 +2,19 @@
 *.o
 *.out
 *.zip
+.cache/
 
 #HW2
 mandelbrot
 *.ppm
+
+#HW3
+cg
+cg_grader
+pr
+pr_grader
+compile_commands.json
+upload.sh
+bfs
+bfs_grader
+
