@@ -1,11 +1,13 @@
-#include <cstddef>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define TILE_WIDTH 32
+#define TILE_WIDTH 16
+// X/Y = 100/75
+#define GROUP_X 4
+#define GROUP_Y 3
 
 /**************************************************************************************/
 /* CUDA MEMCHECK */
@@ -30,29 +32,32 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
 }
 
 __global__ void mandelKernel(float lowerX, float lowerY, float stepX, float stepY,
-                             size_t pitch, size_t width, size_t height, int maxIterations, int *d_img) {
+                             size_t pitch, int maxIterations, int *d_img) {
   // To avoid error caused by the floating number, use the following pseudo code
   int tIDx = blockIdx.x * blockDim.x + threadIdx.x;
   int tIDy = blockIdx.y * blockDim.y + threadIdx.y;
-  if (tIDx >= width || tIDy >= height)
-  {
-    return;
-  }
-  float x = lowerX + tIDx * stepX;
-  float y = lowerY + tIDy * stepY;
+  int pixelXst = tIDx * GROUP_X;
+  int pixelYst = tIDy * GROUP_Y;
+  for (int pixelX = pixelXst; pixelX < pixelXst + GROUP_X; pixelX++) {
+    for (int pixelY = pixelYst; pixelY < pixelYst + GROUP_Y; pixelY++) {
 
-  float z_x = x, z_y = y;
-  int i;
-  for (i = 0; i < maxIterations; ++i) {
-    if (z_x * z_x + z_y * z_y > 4.f)
-      break;
-    float new_x = z_x * z_x - z_y * z_y;
-    float new_y = 2.f * z_x * z_y;
-    z_x = x + new_x;
-    z_y = y + new_y;
+      float x = lowerX + pixelX * stepX;
+      float y = lowerY + pixelY * stepY;
+
+      float z_x = x, z_y = y;
+      int i;
+      for (i = 0; i < maxIterations; ++i) {
+        if (z_x * z_x + z_y * z_y > 4.f)
+          break;
+        float new_x = z_x * z_x - z_y * z_y;
+        float new_y = 2.f * z_x * z_y;
+        z_x = x + new_x;
+        z_y = y + new_y;
+      }
+      int* target = (int*)((char*)d_img + pixelY * pitch) + pixelX;
+      *target = i;
+    }
   }
-  int* target = (int*)((char*)d_img + tIDy * pitch) + tIDx;
-  *target = i;
 }
 
 // Host front-end function that allocates the memory and launches the GPU kernel
@@ -64,21 +69,17 @@ void hostFE(float upperX, float upperY, float lowerX, float lowerY, int *img,
   int *h_img;
   int *d_img;
   size_t pitch = 0;
-  h_img = (int *)malloc(imgSize);
+  gpuErrchk(cudaHostAlloc(&h_img, imgSize, cudaHostAllocDefault));
   gpuErrchk(cudaMallocPitch(&d_img, &pitch, resX * sizeof(int), resY));
   gpuErrchk(cudaMemset(d_img, 0, imgSize));
-
-  size_t GRID_X = resX / TILE_WIDTH, GRID_Y = resY / TILE_WIDTH;
-  if (resX % TILE_WIDTH) GRID_X++;
-  if (resY % TILE_WIDTH) GRID_Y++;
-  dim3 dimGrid(GRID_X, GRID_Y);
+  dim3 dimGrid(resX / TILE_WIDTH / GROUP_X, resY / TILE_WIDTH / GROUP_Y);
   dim3 dimBlock(TILE_WIDTH, TILE_WIDTH);
-  mandelKernel<<<dimGrid, dimBlock>>>(lowerX, lowerY, stepX, stepY, pitch, resX, resY, maxIterations, d_img);
+  mandelKernel<<<dimGrid, dimBlock>>>(lowerX, lowerY, stepX, stepY, pitch, maxIterations, d_img);
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaMemcpy2D(h_img, resX * sizeof(int), d_img, pitch, resX * sizeof(int), resY, cudaMemcpyDeviceToHost));
   gpuErrchk(cudaFree(d_img));
 
   memcpy(img, h_img, imgSize);
 
-  free(h_img);
+  gpuErrchk(cudaFreeHost(h_img));
 }
